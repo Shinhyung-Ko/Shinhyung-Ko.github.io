@@ -117,25 +117,212 @@
 
     /* 인쇄 */
     @media print {
-      .screen-only { display: none !important; }
-      .soft-card, .soft-card-dark, .soft-card-static { box-shadow: none !important; border: 1px solid #e5e7eb; }
-      .page-break { break-after: page; }
-      .avoid-break-inside { break-inside: avoid; }
-      .stage-title::after { display: none; }
+      /* ======== 인쇄 안정화 패치 ======== */
+
+      body { background:#fff !important; }
+      .soft-card, .soft-card-dark, .soft-card-static { box-shadow: none !important; }
+
+      /* A4: @page 마진(좌14/우14/상14/하16mm) → 내용 폭 182mm */
+      .print-container { width: 182mm !important; margin: 0 auto !important; }
+
+      /* 화면 max-width 제한 해제(임의 축소 방지) */
+      .max-w-6xl { max-width: none !important; }
+
+      /* 그리드 아이템 분할 방지 → 인쇄 시 단일 열로 */
+      .grid { display: block !important; }
+      .grid > * {
+        width: 100% !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        -webkit-column-break-inside: avoid !important;
+      }
+
+      /* 섹션/카드 단위 분할 최소화 */
+      section.avoid-break-inside,
+      article.soft-card, article.soft-card-dark, article.soft-card-static {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        -webkit-column-break-inside: avoid !important;
+      }
+
+      /* 구분선/푸터의 어색한 경계 분할 완화 */
+      .divider { break-after: avoid-page !important; }
+      footer { break-before: avoid-page !important; }
+
+      /* 타임라인 세로선은 인쇄 시 분할을 유도하므로 비활성 */
+      .timeline::before { display: none !important; }
+
+      /* 화면 전용 요소 비활성 */
+      .sticky, .screen-only { display: none !important; }
+
+      /* 애니메이션 제거(글자 선명도 유지) */
+      .animate__animated { animation: none !important; }
+      .pulse-host::after { animation: none !important; }
+
+      /* 텍스트/색상 안정화 */
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        text-shadow: none !important;
+        filter: none !important;
+      }
+
+      /* 강제 페이지 분할 지점 */
+      .page-break { break-after: page !important; }
     }
+
+    /* --- 타임라인 라인을 인쇄에서 '짧게' 살리고 싶다면 위의 display:none 대신 아래를 사용 ---
+    @media print {
+      .timeline { position: relative; padding-left: 18px; }
+      .timeline::before {
+        content:""; position:absolute; left:6px; top:0; height:100%;
+        width:3px; border-radius:2px; background:#c7d2fe; box-shadow:none;
+      }
+    }
+    */
+/* ── 구분선(divider) 주변 간격만 축소 ───────────────────────── */
+.timeline > .divider { 
+  margin: 30px 0 !important;            /* 위·아래 12px */
+}
+
+/* 화면에서 page-break 요소가 간격을 먹지 않게 */
+@media screen {
+  .page-break { display: none; }        /* 화면에서는 숨김(여백 0) */
+}
+
+/* 인쇄 시에는 다시 보이게 + 페이지 분할 유지 */
+@media print {
+  .page-break { display: block !important; }
+}
+
+/* ── 커버(맨 위 타이틀/박스)만 전체적으로 살짝 축소 ────────────────── */
+.soft-card-static {
+  padding: 1.5rem 2.5rem !important;   /* 원래 p-8~12 → 여백 축소 */
+}
+
+.soft-card-static h2 {
+  font-size: 2.5rem !important;      /* 원래 3~5xl → 약간만 줄임 */
+}
+
+.soft-card-dark {
+  padding: 1rem 1.25rem !important;  /* 내부 미션/비전 박스 여백 축소 */
+}
+
+.soft-card-dark h3 {
+  font-size: 1.2rem !important;        /* 소제목 살짝 축소 */
+}
+
+.soft-card-dark p {
+  font-size: 0.95rem !important;      /* 본문 글씨도 살짝 축소 */
+}
+
+/* 화면용: 단계별 카드(soft-card) 안의 본문만 살짝 키움 */
+.timeline article.soft-card p {
+  font-size: 0.9rem !important;         /* = Tailwind text-base */
+  line-height: 1.65 !important;       /* 가독성 개선 */
+}
+
+/* 인쇄용: 인쇄 시에도 조금 더 크게 */
+@media print {
+  .timeline article.soft-card p {
+    font-size: 1.5rem !important;
+    line-height: 1.65 !important;
+  }
+}
+
+/* 화면용: 타임라인 카드 소제목만 확대 */
+.timeline article.soft-card h4 {
+  font-size: rem;     /* 모바일 */
+  line-height: 1.35;
+}
+
+@media (min-width: 768px) {
+  .timeline article.soft-card h4 {
+    font-size: 1.1rem;   /* md 이상 */
+  }
+}
+
+/* 인쇄용: A4에서 살짝 더 키움 */
+@media print {
+  .timeline article.soft-card h4 {
+    font-size: 2rem !important;
+    line-height: 1.35 !important;
+  }
+}
+
+/* === A4 한 장에 맞추는 인쇄 전용 타이트 프리셋 === */
+@media print {
+  /* 페이지 여백을 조금 더 줄임 */
+  @page { size: A4; margin: 10mm 10mm 12mm 10mm; }
+
+  /* 인쇄 폭 고정 + 전체 높이를 한 장 안으로 타이트하게 */
+  .print-container {
+    width: 182mm !important;   /* A4 - 좌우 마진 */
+    margin: 0 auto !important;
+  }
+
+  /* 페이지 나눔 강제 요소/화면 전용 요소 제거 */
+  .page-break { display: none !important; }
+  .screen-only, .sticky { display: none !important; }
+
+  /* ★ 핵심: 그리드를 block으로 바꾸던 기존 규칙을 무효화하고, 다단 유지 */
+  .grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important; /* 카드 3열 */
+    gap: 5mm !important;                               /* 간격 축소 */
+  }
+  /* 2열 섹션은 2열 유지 */
+  .grid.md\:grid-cols-2 { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* 카드 패딩/모서리/그림자 축소 → 면적 줄이고 선명도 유지 */
+  .soft-card, .soft-card-dark, .soft-card-static {
+    box-shadow: none !important;
+    padding: 4mm !important;                 /* 내부 여백 축소 */
+    border-radius: 10px !important;
+  }
+
+  /* 타이틀·소제목 폰트 사이즈 타이트 조정 */
+  h2 { font-size: 19pt !important; line-height: 1.2 !important; }
+  .stage-title { font-size: 13pt !important; line-height: 1.25 !important; }
+  .stage-subtitle { margin-bottom: 3mm !important; font-size: 10.5pt !important; }
+
+  /* 카드 소제목(h4)과 본문 */
+  .timeline article.soft-card h4 { font-size: 11pt !important; line-height: 1.3 !important; }
+  .timeline article.soft-card p  { font-size: 9.8pt !important; line-height: 1.45 !important; }
+
+  /* 커버 박스(미션/비전) 살짝 더 타이트하게 */
+  .soft-card-static span[class*="bg-blue-50"] { font-size: 10pt !important; padding: 2mm 3mm !important; }
+  .soft-card-dark h3 { font-size: 10.5pt !important; }
+  .soft-card-dark p  { font-size: 9.6pt !important; }
+
+  /* 상·하단 섹션 간 간격 줄이기 */
+  section { margin-top: 6mm !important; }
+  .divider { height: 2px !important; margin: 5mm 0 !important; }
+
+  /* 아이콘 크기 축소(텍스트 대비 과점유 방지) */
+  svg.w-5.h-5 { width: 18px !important; height: 18px !important; }
+
+  /* 타임라인 세로선은 인쇄에서 없애 선명도 확보 */
+  .timeline::before { display: none !important; }
+
+  /* 애니메이션·효과 비활성화(텍스트 선명도) */
+  .animate__animated, .pulse-host::after { animation: none !important; }
+  * { text-shadow: none !important; filter: none !important; }
+}
+
   </style>
 </head>
 
 <body class="text-gray-800">
+  <div class="print-container"><!-- 인쇄 폭 고정 래퍼 시작 -->
 
   <!-- 상단 고급 헤더(화면용) -->
-  <div class="screen-only sticky top-0 z-30 glass border-b border-blue-100">
+  <div class="screen-only sticky top-0 z-30 glass border-b border-blue-800">
     <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <span class="inline-block w-8 h-8 rounded-xl" style="background: conic-gradient(from 0deg,#93c5fd,#2563eb,#1e3a8a,#93c5fd); box-shadow: 0 4px 12px rgba(37,99,235,.35);"></span>
-        <h1 class="text-lg font-semibold text-blue-900">KAC공항서비스 윤리경영 로드맵 · 인쇄 고급 버전</h1>
+        <span class="inline-block w-5 h-5 rounded-xl" style="background: conic-gradient(from 0deg,#93c5fd,#2563eb,#1e3a8a,#93c5fd); box-shadow: 0 4px 12px rgba(37,99,235,.35);"></span>
+        <h1 class="text-lg font-semibold text-blue-900">KAC공항서비스 윤리경영 로드맵</h1>
       </div>
-      <button onclick="window.print()" class="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition">PDF 저장</button>
     </div>
   </div>
 
@@ -152,19 +339,22 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
         <div class="soft-card-dark pulse-host rounded-2xl p-6">
-          <h3 class="text-blue-800 font-semibold text-lg mb-2">미션</h3>
+          <h3 class="text-blue-900 font-semibold text-lg mb-2">미션</h3>
           <p class="text-gray-700">우리는 효과적인 공항시설관리와 최고의 운영서비스로 고객만족과 공항안전을 실현한다.</p>
         </div>
         <div class="soft-card-dark pulse-host rounded-2xl p-6">
-          <h3 class="text-blue-800 font-semibold text-lg mb-2">비전</h3>
-          <p class="text-gray-700">우리는 투명성·공정성을 바탕으로 지속 가능한 공항 서비스를 제공한다.</p>
+          <h3 class="text-blue-900 font-semibold text-lg mb-2">비전</h3>
+          <p class="text-gray-700">전문인이 만드는 안전한 하늘, 진심이 깃든 편안한 공항</p>
         </div>
       </div>
     </div>
   </section>
 
+  <!-- 커버 뒤 한 장 끊기 -->
+  <div class="page-break"></div>
+
   <!-- 전체 단계: 1 → 2 → 3 -->
-  <main class="max-w-6xl mx-auto px-4 md:px-8 mt-10 space-y-16 timeline">
+  <main class="max-w-6xl mx-auto px-4 md:px-8 mt-10 space-y-6 timeline">
 
     <!-- 1단계 -->
     <section class="avoid-break-inside relative">
@@ -180,47 +370,37 @@
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         <article class="soft-card pulse-host rounded-2xl p-5">
           <h4 class="flex items-center font-semibold text-gray-900 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-900 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
-            윤리헌장 실천체계 구축
+            윤리경영 체계 구축
           </h4>
-          <p class="text-sm text-gray-700">핵심 가치(투명성, 국민 서비스 등) 기반 세부 행동 강령 및 지침 제정</p>
+          <p class="text-sm text-gray-700">KAC공항서비스 핵심 가치(안전, 고객서비스, 인권존중, 상생협력) 기반 윤리헌장 제정 </p>
+        </article>
+
+       <article class="soft-card pulse-host rounded-2xl p-5">
+          <h4 class="flex items-center font-semibold text-gray-900 mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-900 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            윤리헌장 실천 활동 전개
+          </h4>
+          <p class="text-sm text-gray-700">제정된 윤리헌장 기반 임직원 참여형 윤리 실천 프로그램 운영 및 정착</p>
         </article>
 
         <article class="soft-card pulse-host rounded-2xl p-5">
           <h4 class="flex items-center font-semibold text-gray-900 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-900 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
             부패 방지 시스템 자체 구축
           </h4>
-          <p class="text-sm text-gray-700">ISO 37001 원칙을 반영한 KAC공항서비스 맞춤형 부패 방지 시스템 및 매뉴얼 제정</p>
+          <p class="text-sm text-gray-700">ISO 37001 주요 원칙을 반영한 맞춤형 부패 방지 체크리스트 제정</p>
         </article>
 
         <article class="soft-card pulse-host rounded-2xl p-5">
           <h4 class="flex items-center font-semibold text-gray-900 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            리스크 평가 및 통제
-          </h4>
-          <p class="text-sm text-gray-700">부패 취약 분야(계약, 인사 등) 리스크 평가 및 관리 체계 도입</p>
-        </article>
-
-        <article class="soft-card pulse-host rounded-2xl p-5">
-          <h4 class="flex items-center font-semibold text-gray-900 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            윤리적 리더십 강화
-          </h4>
-          <p class="text-sm text-gray-700">경영진의 윤리 서약과 솔선수범을 통한 윤리경영 의지 표명</p>
-        </article>
-
-        <article class="soft-card pulse-host rounded-2xl p-5">
-          <h4 class="flex items-center font-semibold text-gray-900 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-900 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
             내부 윤리 교육 의무화
@@ -230,7 +410,7 @@
 
         <article class="soft-card pulse-host rounded-2xl p-5">
           <h4 class="flex items-center font-semibold text-gray-900 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-900 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
             자체 윤리 평가 시스템 구축
@@ -257,57 +437,57 @@
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         <article class="soft-card pulse-host rounded-2xl p-5">
           <h4 class="flex items-center font-semibold text-gray-900 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-900 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.606 2.296.122 2.572-1.065z"/>
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
             부패 방지 시스템 운영 활성화
           </h4>
-          <p class="text-sm text-gray-700">지속적 운영 및 주기적 내부 감사를 통한 실효성 점검</p>
+          <p class="text-sm text-gray-700">내부 감사 및 체크리스트 적용을 통한 윤리경영 실태 점검</p>
         </article>
 
         <article class="soft-card pulse-host rounded-2xl p-5">
           <h4 class="flex items-center font-semibold text-gray-900 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-900 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.606 2.296.122 2.572-1.065z"/>
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
-            자율적 윤리 실천 프로그램
+            임직원 참여 윤리문화 확산
           </h4>
-          <p class="text-sm text-gray-700">청렴 실천 우수 부서 선정 등 임직원 참여형 프로그램 운영</p>
+          <p class="text-sm text-gray-700">윤리 슬로건 공모 등 임직원 참여 프로그램을 통한 윤리 실천 분위기 정착</p>
         </article>
 
         <article class="soft-card pulse-host rounded-2xl p-5">
           <h4 class="flex items-center font-semibold text-gray-900 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-900 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.606 2.296.122 2.572-1.065z"/>
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
             국민 중심 서비스 강화
           </h4>
-          <p class="text-sm text-gray-700">윤리헌장 기반 국민 최우선 서비스 매뉴얼 적용 및 우수 사례 발굴</p>
+          <p class="text-sm text-gray-700">윤리헌장 기반 국민 최우선 서비스 실천 조직 문화 확립</p>
         </article>
 
         <article class="soft-card pulse-host rounded-2xl p-5">
           <h4 class="flex items-center font-semibold text-gray-900 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-900 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.606 2.296.122 2.572-1.065z"/>
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
-            협력사 윤리경영 지원
+               윤리 문화 및 피드백 체계 확산
           </h4>
-          <p class="text-sm text-gray-700">협력사 대상 청렴 서약 및 윤리 교육 지원을 통한 상생의 윤리 생태계 구축</p>
+          <p class="text-sm text-gray-700">윤리경영 활동 전사적 공유 및 피드백 체계 마련을 통한 임직원 윤리 의식 내재화 </p>
         </article>
 
         <article class="soft-card pulse-host rounded-2xl p-5">
           <h4 class="flex items-center font-semibold text-gray-900 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-900 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.606 2.296.122 2.572-1.065z"/>
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
-            내부 신고 시스템 개선
+            윤리 행동 가이드라인 공유
           </h4>
-          <p class="text-sm text-gray-700">익명성 보장 강화 및 처리 절차와 결과의 투명한 공개</p>
+          <p class="text-sm text-gray-700">윤리적 갈등 상황별 대응 매뉴얼과 상담 체계 마련을 통한 실천 중심 윤리경영 지원</p>
         </article>
       </div>
     </section>
@@ -323,54 +503,54 @@
         <h3 class="stage-title text-2xl md:text-3xl font-bold text-gray-900">윤리경영 고도화 및 선도 (2030 ~ 2032)</h3>
       </div>
       <p class="stage-subtitle text-gray-600 mb-5 before:content-['▸'] before:mr-1 before:text-blue-600">
-        윤리경영의 ESG 확장과 공공기관 윤리경영 선도
+        윤리경영의 ESG 확장과 공직유관단체 윤리경영 선도
       </p>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         <!-- 별 아이콘: 선형 -->
         <article class="soft-card pulse-host rounded-2xl p-5">
           <h4 class="flex items-center font-semibold text-gray-900 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600 mr-2 shrink-0 align-middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-900 mr-2 shrink-0 align-middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l2.6 5.27 5.8.42-4.4 3.83 1.32 5.69L12 15.9 6.68 18.21 8 12.52 3.6 8.69l5.8-.42L12 3z"/>
             </svg>
-            ESG 기반 윤리경영 시스템 내재화
+            윤리경영 우수사례 확산
           </h4>
-          <p class="text-sm text-gray-700">지속가능성을 위한 윤리적 가치와 시스템의 전사적 통합</p>
+          <p class="text-sm text-gray-700">임직원 윤리경영 우수사례를 발굴·포상하고 대외 공유를 통해 모범사례로 확산</p>
         </article>
 
         <article class="soft-card pulse-host rounded-2xl p-5">
           <h4 class="flex items-center font-semibold text-gray-900 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600 mr-2 shrink-0 align-middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-900 mr-2 shrink-0 align-middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l2.6 5.27 5.8.42-4.4 3.83 1.32 5.69L12 15.9 6.68 18.21 8 12.52 3.6 8.69l5.8-.42L12 3z"/>
             </svg>
             사회적 책임 및 동반 성장 강화
           </h4>
-          <p class="text-sm text-gray-700">협력사 윤리 가이드라인 제공, 지역사회 연계 사회공헌 활동 확대</p>
+          <p class="text-sm text-gray-700">임직원 참여 사회공헌 활동 정례화 및 국민 상생 가치 실천</p>
         </article>
 
         <article class="soft-card pulse-host rounded-2xl p-5">
           <h4 class="flex items-center font-semibold text-gray-900 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600 mr-2 shrink-0 align-middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-900 mr-2 shrink-0 align-middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l2.6 5.27 5.8.42-4.4 3.83 1.32 5.69L12 15.9 6.68 18.21 8 12.52 3.6 8.69l5.8-.42L12 3z"/>
             </svg>
-            투명성 및 신뢰성 제고
+            투명 윤리경영 선진화
           </h4>
-          <p class="text-sm text-gray-700">공공데이터 개방 확대 등 경영 관련 주요 정보의 투명한 공개</p>
+          <p class="text-sm text-gray-700">주요 경영 및 윤리 관련 정보의 정기 공시 및 국민 친화적 공개 체계 확립</p>
         </article>
 
         <article class="soft-card pulse-host rounded-2xl p-5">
           <h4 class="flex items-center font-semibold text-gray-900 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600 mr-2 shrink-0 align-middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-900 mr-2 shrink-0 align-middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l2.6 5.27 5.8.42-4.4 3.83 1.32 5.69L12 15.9 6.68 18.21 8 12.52 3.6 8.69l5.8-.42L12 3z"/>
             </svg>
-            윤리경영 성과 공유
+          자회사 윤리경영 성과 공유 
           </h4>
-          <p class="text-sm text-gray-700">자체 시스템 운영 노하우 대외 공유 및 타 기관과 교류</p>
+          <p class="text-sm text-gray-700">자체 시스템 운영 노하우 타 자회사 공유 및 공동 윤리 캠페인 운영</p>
         </article>
 
         <article class="soft-card pulse-host rounded-2xl p-5">
           <h4 class="flex items-center font-semibold text-gray-900 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600 mr-2 shrink-0 align-middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-900 mr-2 shrink-0 align-middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l2.6 5.27 5.8.42-4.4 3.83 1.32 5.69L12 15.9 6.68 18.21 8 12.52 3.6 8.69l5.8-.42L12 3z"/>
             </svg>
             지속적 시스템 개선
@@ -385,8 +565,11 @@
   <!-- 하단 워터마크 -->
   <footer class="max-w-6xl mx-auto px-4 md:px-8 mt-12 mb-10">
     <div class="soft-card-dark rounded-2xl p-4 text-center text-sm text-gray-600">
-      KAC공항서비스 · 윤리경영 로드맵   </div>
+      KAC공항서비스 · 윤리경영 로드맵
+    </div>
   </footer>
+
+  </div><!-- 인쇄 폭 고정 래퍼 끝 -->
 
   <!-- 스크립트: pseudo-layer 기반 pulse, 대제목 글로우, 소제목 동시 효과 -->
   <script>
@@ -404,7 +587,7 @@
         });
       });
 
-      // 단계 제목 hover: 텍스트 글로우 + 소제목 fadeInUp
+      // 단계 제목 hover: 텍스트 글로우 + 소제목 빠른 fadeInUp
       const stageTitles = document.querySelectorAll('.stage-title');
       stageTitles.forEach((titleEl) => {
         const section = titleEl.closest('section');
