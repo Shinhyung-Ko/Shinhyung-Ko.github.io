@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로또 6/45 분석 연구소 (Lotto 6/45 Analytics Lab)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        .lotto-ball {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            box-shadow: inset -2px -2px 5px rgba(0,0,0,0.2), 2px 2px 5px rgba(0,0,0,0.1);
+        }
+        .ball-1-10 { background: #fcc419; }
+        .ball-11-20 { background: #4dabf7; }
+        .ball-21-30 { background: #ff6b6b; }
+        .ball-31-40 { background: #adb5bd; }
+        .ball-41-45 { background: #69db7c; }
+        
+        .chart-container { position: relative; width: 100%; max-width: 600px; margin: 0 auto; height: 300px; }
+        
+        .special-clause {
+            background: linear-gradient(to right, #eff6ff, #ffffff);
+            border-left: 4px solid #2563eb;
+        }
+
+        /* 주사위 스타일 및 애니메이션 */
+        .dice {
+            width: 64px; height: 64px; background: white; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 2px solid #e5e7eb; transition: all 0.4s ease;
+            margin: 0 auto; color: #1e293b;
+        }
+        .rolling { animation: roll 0.1s infinite; }
+        @keyframes roll {
+            0% { transform: rotate(0deg) scale(1.1); }
+            50% { transform: rotate(180deg) scale(0.9); }
+            100% { transform: rotate(360deg) scale(1.1); }
+        }
+        .game-box {
+            background: #0f172a; color: white; border-radius: 1.5rem;
+            padding: 1.5rem; text-align: center; position: relative; overflow: hidden;
+        }
+
+        .animate-pop { animation: popIn 0.3s ease-out forwards; }
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800 antialiased selection:bg-blue-100 selection:text-blue-900">
+
+    <header class="bg-white shadow-sm border-b border-stone-200 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">L</div>
+                <h1 class="text-xl font-bold tracking-tight text-slate-800">고신형의 로또 6/45 분석 연구소 <span class="text-xs font-normal text-slate-500 ml-1">v4.2 Alpha</span></h1>
+            </div>
+            <div id="weekDisplay" class="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
+                주간 시드 계산 중...
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 py-8 space-y-8">
+
+        <section class="space-y-4">
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
+                <div class="flex justify-between items-start">
+                    <h2 class="text-xl font-bold text-slate-800 mb-2">실력은 노력이고, 행운은 과학입니다.</h2>
+                    <span class="text-xs text-blue-500 font-mono italic">"간다 간다 뿅~간다!"</span>
+                </div>
+                <p class="text-stone-500 text-sm leading-relaxed">
+                    본 연구소는 단순한 난수 생성이 아닌, 통계적 유의미함을 추구합니다. <br>
+                    <strong>주간 고정 알고리즘</strong>을 통해 이번 주 당신에게 할당된 '야무진' 운명을 확인하세요. 
+                    낙첨 시 연구소는 책임을 지지 않으나, 당첨 시 아래 약관에 따라 기쁨을 나누게 됩니다.
+                </p>
+            </div>
+        </section>
+
+        <section class="special-clause p-6 rounded-2xl shadow-sm">
+            <h3 class="text-blue-800 font-bold text-sm mb-2 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                이용 약관 및 수익 배분 안내 (필독)
+            </h3>
+            <p class="text-slate-700 text-sm leading-relaxed">
+                사용자가 본 프로그램을 통해 생성된 번호로 1등 또는 2등에 당첨될 경우, 
+                <strong>당첨금의 일정 부분(협의 가능하나 '기분 좋은' 수준)을 「고신형」 주임님과 분배해야 할 도의적 및 실질적 의무</strong>를 가지게 됩니다. 
+                번호를 확인하거나 미니게임을 플레이하는 행위는 본 조항에 동의한 것으로 간주합니다.
+            </p>
+        </section>
+
+        <section id="generator" class="space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-stone-200 pb-4">
+                <div class="text-center sm:text-left">
+                    <h2 class="text-2xl font-bold text-slate-800">이번 주 행운 리포트</h2>
+                    <p id="luckyMotto" class="text-sm text-blue-500 font-medium mt-1">오늘따라 표정이 좋으시네요. 큰 거 하나 오겠는데요?</p>
+                </div>
+                <button id="generateBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-2xl shadow-lg shadow-blue-200 transition-all active:scale-95">
+                    🚀 번호 정밀 분석 시작
+                </button>
+            </div>
+
+            <div id="resultsArea" class="bg-white rounded-3xl p-8 border border-slate-200 min-h-[300px] flex flex-col items-center justify-center space-y-4 shadow-inner">
+                <div class="text-stone-300 text-center animate-pulse">
+                    <p class="mb-2 text-5xl">🔮</p>
+                    <p class="font-bold">당신의 미래가 계산되고 있습니다...</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="game-box">
+            <div class="relative z-10 space-y-4">
+                <div>
+                    <h3 class="text-lg font-bold">🎯 복권 기운 충전: 주사위 굴리기</h3>
+                    <p class="text-[11px] text-slate-400 font-medium">당첨 확률(기분상)을 높여주는 신비한 주사위입니다.</p>
+                </div>
+                
+                <div id="diceDisplay" class="dice">🎲</div>
+                
+                <button id="rollBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-8 rounded-full text-xs shadow-lg shadow-blue-900/50 transition-all active:scale-95">
+                    운명 섞기
+                </button>
+                
+                <p id="diceMsg" class="text-[12px] font-medium text-blue-300 h-4 italic">주사위를 굴려 신형 주임님의 축복을 확인하세요!</p>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-800 mb-4 text-center">📊 통계적 안착도 (Sum)</h3>
+                <div class="chart-container"><canvas id="sumChart"></canvas></div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-800 mb-4 text-center">🎯 번호대 밸런스 점검</h3>
+                <div class="chart-container"><canvas id="freqChart"></canvas></div>
+            </div>
+        </section>
+        
+        <section class="bg-white rounded-2xl p-6 border border-stone-100 shadow-sm">
+            <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                📢 고신형 주임의 야무진 한마디
+            </h3>
+            <div id="analysisComment" class="text-sm text-stone-600 leading-relaxed italic text-center">
+                분석 전입니다. 주임님의 지분 요구에 겁먹지 말고 버튼을 눌러보세요.
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-stone-100 border-t border-stone-200 mt-12 py-12">
+        <div class="max-w-6xl mx-auto px-4 text-center">
+            <p class="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-4">Lotto Analytics Lab by Ko Shin-Hyung</p>
+            <p class="text-[9px] text-stone-300">당첨 시 연락처: 사내 메신저 '고신형 주임' 검색</p>
+        </div>
+    </footer>
+
+    <script>
+        const mottos = [
+            "이번 주는 느낌이 아주 야무집니다!",
+            "지갑이 벌써 무거워지는 환청이 들리네요.",
+            "당첨되면 커피 한 잔 사주시는 거 잊지 마세요.",
+            "과학적 근거는 없지만 기분은 아주 좋습니다!",
+            "혹시 1등 되시면 저 퇴사 좀 시켜주세요.",
+            "제발 제발 제발 제발 제발 제발 제발",
+            "번호는 고정되어 있어도 행운은 매 순간 바뀝니다.",
+            "이 번호들... 느낌이 아주 좋습니다.",
+            "로또는 당첨될 때까지 사는 사람이 당첨된다고 합니다."
+        ];
+
+        // 주사위 멘트
+        const diceIcons = ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
+        const diceMottos = [
+            "",
+            "1? 아... 이건 감사 대상인데요? 다시 굴리세요.",
+            "2... 소소한 행운이 예상됩니다.",
+            "3! 평타는 칩니다. 오늘 로또 한 장 가시죠.",
+            "4! 오, 돈 냄새가 나기 시작합니다.",
+            "5!! 아주 좋습니다. 「고신형」 주임님의 기운이 깃듭니다.",
+            "6!!!!!! 대박입니다. 당첨금 입금 준비하세요!"
+        ];
+
+        function getWeeklySeed() {
+            const now = new Date();
+            const oneJan = new Date(now.getFullYear(), 0, 1);
+            const numberOfDays = Math.floor((now - oneJan) / (24 * 60 * 60 * 1000));
+            const weekNum = Math.ceil((numberOfDays + oneJan.getDay() + 1) / 7);
+            return { year: now.getFullYear(), week: weekNum, full: now.getFullYear() * 100 + weekNum };
+        }
+
+        function seededRandom(seed) {
+            const x = Math.sin(seed) * 10000;
+            return x - Math.floor(x);
+        }
+
+        const info = getWeeklySeed();
+        document.getElementById('weekDisplay').innerText = `${info.year}년 ${info.week}주차 행운 할당됨`;
+
+        const state = {
+            baseSeed: info.full,
+            generatedSets: [],
+            chartInstances: {}
+        };
+
+        function getBallColorClass(num) {
+            if (num <= 10) return 'ball-1-10';
+            if (num <= 20) return 'ball-11-20';
+            if (num <= 30) return 'ball-21-30';
+            if (num <= 40) return 'ball-31-40';
+            return 'ball-41-45';
+        }
+
+        function generateSingleSet(setIndex) {
+            let set = [];
+            let attempt = 0;
+            while (attempt < 500) {
+                let tempSet = new Set();
+                let subSeed = state.baseSeed + (setIndex * 50) + attempt;
+                while (tempSet.size < 6) {
+                    subSeed += 0.456;
+                    tempSet.add(Math.floor(seededRandom(subSeed) * 45) + 1);
+                }
+                let arr = Array.from(tempSet).sort((a, b) => a - b);
+                const sum = arr.reduce((a, b) => a + b, 0);
+                if (sum >= 120 && sum <= 180) { set = arr; break; }
+                attempt++;
+            }
+            return set.length ? set : [1,2,3,4,5,6];
+        }
+
+        function generateLottoSets() {
+            const sets = [];
+            for(let i=0; i<5; i++) sets.push(generateSingleSet(i));
+            state.generatedSets = sets;
+            
+            renderResults();
+            updateCharts();
+            
+            const randomMotto = mottos[Math.floor(Math.random() * mottos.length)];
+            document.getElementById('luckyMotto').innerText = randomMotto;
+            
+            document.getElementById('analysisComment').innerHTML = `
+                번호를 뽑으셨나요? 이제 가장 중요한 순서가 남았습니다. 당첨 확인 전까지 약 5분 동안 '강남 빌딩 매물 확인하기'와 '사직서 봉투 디자인 고르기'를 병행하며 행복한 상상에 빠져보세요. 비록 로또 용지가 종이 쪼가리가 될지, 황금 티켓이 될지는 신만이 아시겠지만, 적어도 이 번호를 쥐고 있는 동안만큼은 당신이 이 세상에서 가장 부유한 꿈을 꿀 자격이 있습니다. <br>
+                당첨 시 <strong>「고신형」 주임님</strong>과의 지분 정산 절차를 잊지 말아 주십시오.
+            `;
+        }
+
+        function renderResults() {
+            const container = document.getElementById('resultsArea');
+            container.innerHTML = '';
+            container.className = "bg-white rounded-3xl p-6 border border-slate-200 grid grid-cols-1 gap-4 w-full shadow-inner";
+
+            state.generatedSets.forEach((set, index) => {
+                const row = document.createElement('div');
+                row.className = "flex flex-col sm:flex-row items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 animate-pop";
+                row.style.animationDelay = `${index * 50}ms`;
+
+                row.innerHTML = `
+                    <span class="text-[10px] font-black text-blue-300 w-12">#SET_${index+1}</span>
+                    <div class="flex gap-2 my-2 sm:my-0">
+                        ${set.map(n => `<div class="lotto-ball ${getBallColorClass(n)}">${n}</div>`).join('')}
+                    </div>
+                    <span class="text-[10px] font-mono font-bold text-slate-400">SUM: ${set.reduce((a,b)=>a+b,0)}</span>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        // 주사위 이벤트 리스너 추가
+        document.getElementById('rollBtn').addEventListener('click', function() {
+            const dice = document.getElementById('diceDisplay');
+            const msg = document.getElementById('diceMsg');
+            dice.classList.add('rolling');
+            msg.innerText = "운명을 감사 중...";
+
+            setTimeout(() => {
+                dice.classList.remove('rolling');
+                const result = Math.floor(Math.random() * 6) + 1;
+                dice.innerText = diceIcons[result];
+                msg.innerText = diceMottos[result];
+            }, 800);
+        });
+
+        function initCharts() {
+            const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
+            state.chartInstances.sum = new Chart(document.getElementById('sumChart').getContext('2d'), {
+                type: 'line',
+                data: { labels: ['A', 'B', 'C', 'D', 'E'], datasets: [{ data: [0,0,0,0,0], borderColor: '#2563eb', tension: 0.4 }] },
+                options: chartOptions
+            });
+            state.chartInstances.freq = new Chart(document.getElementById('freqChart').getContext('2d'), {
+                type: 'bar',
+                data: { labels: ['10s', '20s', '30s', '40s', '45'], datasets: [{ data: [0,0,0,0,0], backgroundColor: '#3b82f6' }] },
+                options: chartOptions
+            });
+        }
+
+        function updateCharts() {
+            state.chartInstances.sum.data.datasets[0].data = state.generatedSets.map(s => s.reduce((a,b)=>a+b,0));
+            state.chartInstances.sum.update();
+            const ranges = [0,0,0,0,0];
+            state.generatedSets.flat().forEach(n => {
+                if(n <= 10) ranges[0]++; else if(n <= 20) ranges[1]++; else if(n <= 30) ranges[2]++; else if(n <= 40) ranges[3]++; else ranges[4]++;
+            });
+            state.chartInstances.freq.data.datasets[0].data = ranges;
+            state.chartInstances.freq.update();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            document.getElementById('generateBtn').addEventListener('click', generateLottoSets);
+        });
+    </script>
+</body>
+</html>
